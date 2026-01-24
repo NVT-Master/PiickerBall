@@ -1,0 +1,240 @@
+<template>
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" :class="{ show: sidebarOpen }">
+      <div class="sidebar-header">
+        <router-link to="/dashboard" class="logo">
+          <span class="logo-icon">🏸</span>
+          <span>PCM</span>
+        </router-link>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Main Navigation -->
+        <div class="nav-section">Menu chính</div>
+        
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <router-link to="/dashboard" class="nav-link">
+              <i class="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+            </router-link>
+          </li>
+          
+          <li class="nav-item">
+            <router-link to="/members" class="nav-link">
+              <i class="bi bi-people"></i>
+              <span>Thành viên</span>
+            </router-link>
+          </li>
+
+          <li class="nav-item">
+            <router-link to="/news" class="nav-link">
+              <i class="bi bi-newspaper"></i>
+              <span>Tin tức</span>
+            </router-link>
+          </li>
+
+          <li class="nav-item">
+            <router-link to="/bookings" class="nav-link">
+              <i class="bi bi-calendar-check"></i>
+              <span>Đặt sân</span>
+            </router-link>
+          </li>
+
+          <li class="nav-item">
+            <router-link to="/challenges" class="nav-link">
+              <i class="bi bi-trophy"></i>
+              <span>Sàn đấu</span>
+            </router-link>
+          </li>
+        </ul>
+
+        <!-- Admin/Management Section -->
+        <template v-if="authStore.isAdmin || authStore.isReferee || authStore.isTreasurer">
+          <div class="nav-section mt-4">Quản lý</div>
+          
+          <ul class="nav flex-column">
+            <li class="nav-item" v-if="authStore.isAdmin">
+              <router-link to="/courts" class="nav-link">
+                <i class="bi bi-grid-3x3"></i>
+                <span>Quản lý sân</span>
+              </router-link>
+            </li>
+
+            <li class="nav-item" v-if="authStore.canManageMatches">
+              <router-link to="/matches" class="nav-link">
+                <i class="bi bi-controller"></i>
+                <span>Trận đấu</span>
+              </router-link>
+            </li>
+
+            <li class="nav-item" v-if="authStore.canViewTreasury">
+              <router-link to="/transactions" class="nav-link">
+                <i class="bi bi-wallet2"></i>
+                <span>Quản lý quỹ</span>
+              </router-link>
+            </li>
+          </ul>
+        </template>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <small class="text-muted">v1.0.0</small>
+      </div>
+    </aside>
+
+    <!-- Backdrop for mobile -->
+    <div 
+      v-if="sidebarOpen" 
+      class="sidebar-backdrop d-lg-none"
+      @click="sidebarOpen = false"
+    ></div>
+
+    <!-- Main Content -->
+    <main class="main-content" :class="{ expanded: !sidebarOpen }">
+      <!-- Navbar -->
+      <nav class="navbar-main navbar navbar-expand px-3">
+        <button 
+          class="btn btn-link text-dark d-lg-none me-2"
+          @click="sidebarOpen = !sidebarOpen"
+        >
+          <i class="bi bi-list fs-4"></i>
+        </button>
+
+        <div class="d-none d-md-block">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item">
+                <router-link to="/dashboard">
+                  <i class="bi bi-house"></i>
+                </router-link>
+              </li>
+              <li class="breadcrumb-item active" v-if="currentRoute.meta?.title">
+                {{ currentRoute.meta.title }}
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        <div class="ms-auto d-flex align-items-center gap-3">
+          <!-- Notifications -->
+          <div class="dropdown">
+            <button 
+              class="btn btn-link text-dark position-relative"
+              data-bs-toggle="dropdown"
+            >
+              <i class="bi bi-bell fs-5"></i>
+              <span 
+                v-if="notificationCount > 0"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              >
+                {{ notificationCount }}
+              </span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+              <h6 class="dropdown-header">Thông báo</h6>
+              <div class="px-3 py-2 text-muted small">
+                Không có thông báo mới
+              </div>
+            </div>
+          </div>
+
+          <!-- User Dropdown -->
+          <div class="dropdown">
+            <button 
+              class="btn btn-link text-dark d-flex align-items-center gap-2"
+              data-bs-toggle="dropdown"
+            >
+              <div class="avatar avatar-sm">
+                {{ authStore.userInitials }}
+              </div>
+              <span class="d-none d-md-inline">{{ authStore.userFullName }}</span>
+              <i class="bi bi-chevron-down small"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <router-link to="/my-profile" class="dropdown-item">
+                  <i class="bi bi-person me-2"></i>
+                  Thông tin cá nhân
+                </router-link>
+              </li>
+              <li>
+                <a href="#" class="dropdown-item" @click.prevent="showChangePassword = true">
+                  <i class="bi bi-key me-2"></i>
+                  Đổi mật khẩu
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <span class="dropdown-item text-muted small">
+                  <i class="bi bi-shield-check me-2"></i>
+                  {{ authStore.roles.join(', ') || 'Member' }}
+                </span>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a href="#" class="dropdown-item text-danger" @click.prevent="handleLogout">
+                  <i class="bi bi-box-arrow-right me-2"></i>
+                  Đăng xuất
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
+    </main>
+
+    <!-- Change Password Modal -->
+    <ChangePasswordModal 
+      v-if="showChangePassword"
+      @close="showChangePassword = false"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+import ChangePasswordModal from '@/components/common/ChangePasswordModal.vue'
+
+const route = useRoute()
+const authStore = useAuthStore()
+
+const sidebarOpen = ref(false)
+const showChangePassword = ref(false)
+const notificationCount = ref(0)
+
+const currentRoute = computed(() => route)
+
+function handleLogout() {
+  authStore.logout()
+}
+</script>
+
+<style scoped>
+.main-layout {
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+}
+</style>
