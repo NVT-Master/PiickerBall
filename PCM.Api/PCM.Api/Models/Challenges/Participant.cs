@@ -1,6 +1,9 @@
-﻿using PCM.Api.Models.Members;
+﻿using PCM.Api.Models.Challenges;
+using PCM.Api.Models.Members;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+
+namespace PCM.Api.Models.Challenges;
 
 [Table("025_Participants")]
 public class Participant
@@ -11,18 +14,18 @@ public class Participant
     public int ChallengeId { get; set; }
 
     [ForeignKey(nameof(ChallengeId))]
-    public Challenge Challenge { get; set; } = null!;
+    public Challenge? Challenge { get; set; }
 
     public int MemberId { get; set; }
 
     [ForeignKey(nameof(MemberId))]
-    public Member Member { get; set; } = null!;
+    public Member? Member { get; set; }
 
     public string Team { get; set; } = "None"; // TeamA / TeamB / None
 
     public bool EntryFeePaid { get; set; }
     public decimal EntryFeeAmount { get; set; }
 
-    public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
+    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public string Status { get; set; } = "Pending"; // Pending / Confirmed / Withdrawn
 }

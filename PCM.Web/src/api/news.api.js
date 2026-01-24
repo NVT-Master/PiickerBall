@@ -60,7 +60,7 @@ export const newsApi = {
    * @param {number|string} id
    */
   togglePin(id) {
-    return axios.put(`${NEWS_ENDPOINT}/${id}/toggle-pin`)
+    return axios.patch(`${NEWS_ENDPOINT}/${id}/toggle-pin`)
   }
 }
 

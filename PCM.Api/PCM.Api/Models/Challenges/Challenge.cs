@@ -3,6 +3,8 @@ using PCM.Api.Models.Members;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+namespace PCM.Api.Models.Challenges;
+
 [Table("025_Challenges")]
 public class Challenge
 {
@@ -10,46 +12,37 @@ public class Challenge
     public int Id { get; set; }
 
     [Required]
+    [MaxLength(200)]
     public string Title { get; set; } = null!;
 
-    public ChallengeType Type { get; set; }
+    public string? Description { get; set; }
+
+    public ChallengeType ChallengeType { get; set; }
+    public MatchFormat MatchFormat { get; set; }
     public GameMode GameMode { get; set; }
-    private ChallengeStatus status = ChallengeStatus.Open;
 
-    public ChallengeStatus GetStatus()
-    {
-        return status;
-    }
+    public ChallengeStatus Status { get; set; } = ChallengeStatus.Open;
 
-    public void SetStatus(ChallengeStatus value)
-    {
-        status = value;
-    }
-
-    public int? Config_TargetWins { get; set; }
-
-    public int CurrentScore_TeamA { get; set; }
-    public int CurrentScore_TeamB { get; set; }
+    public int? MaxParticipants { get; set; }
 
     public decimal EntryFee { get; set; }
-    public decimal PrizePool { get; set; }
+    public decimal PrizeAmount { get; set; }
 
     [Required]
     public int CreatedBy { get; set; }
 
     [ForeignKey(nameof(CreatedBy))]
-    public Member Creator { get; set; } = null!;
+    public Member? Creator { get; set; }
 
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
+    public int? WinnerId { get; set; }
 
+    [ForeignKey(nameof(WinnerId))]
+    public Member? Winner { get; set; }
+
+    public DateTime? ScheduledDate { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime? ModifiedDate { get; set; }
 
-    public decimal PrizeAmount { get; set; }
-    public string Status { get; set; } = "Open"; // Open | Finished
-    public int? WinnerId { get; set; }
-
     // Navigation property
-    public ICollection<Participant> Participants { get; set; } = new List<Participant>();
+    public ICollection<Participant>? Participants { get; set; }
 }

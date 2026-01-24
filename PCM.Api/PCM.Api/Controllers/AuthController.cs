@@ -66,7 +66,14 @@ public class AuthController : ControllerBase
         return Ok(new LoginResponseDto
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            ExpireAt = token.ValidTo
+            ExpireAt = token.ValidTo,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email ?? string.Empty,
+                FullName = user.UserName
+            },
+            Roles = roles.ToList()
         });
     }
 
