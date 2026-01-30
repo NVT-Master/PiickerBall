@@ -32,7 +32,8 @@
               </button>
               <button 
                 type="button" 
-                class="btn btn-primary" 
+                class="btn" 
+                :class="confirmClass || 'btn-primary'"
                 @click="$emit('confirm')"
                 :disabled="loading"
               >
@@ -70,6 +71,10 @@ const props = defineProps({
   confirmText: {
     type: String,
     default: 'Xác nhận'
+  },
+  confirmClass: {
+    type: String,
+    default: ''
   }
 })
 

@@ -109,13 +109,40 @@ export const useBookingStore = defineStore('booking', () => {
     error.value = null
 
     try {
-      const response = await bookingsApi.create(bookingData)
+      // Convert date + time to full DateTime for backend
+      const startDateTime = `${bookingData.date}T${bookingData.startTime}:00`
+      const endDateTime = `${bookingData.date}T${bookingData.endTime}:00`
+      
+      const payload = {
+        courtId: bookingData.courtId,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        notes: bookingData.note || ''
+      }
+      
+      console.log('Creating booking with payload:', payload)
+      const response = await bookingsApi.create(payload)
       bookings.value.unshift(response.data)
       toast.success('Đặt sân thành công!')
       return response.data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Không thể đặt sân'
-      toast.error(error.value)
+      console.error('Booking creation failed:', err.response?.data)
+      
+      // Extract error message
+      let errorMsg = 'Không thể đặt sân'
+      if (typeof err.response?.data === 'string') {
+        errorMsg = err.response.data
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message
+      } else if (err.response?.data?.title) {
+        errorMsg = err.response.data.title
+      } else if (err.response?.data?.errors) {
+        const errors = err.response.data.errors
+        errorMsg = Object.values(errors).flat().join(', ')
+      }
+      
+      error.value = errorMsg
+      toast.error(errorMsg)
       throw err
     } finally {
       isLoading.value = false
@@ -138,6 +165,26 @@ export const useBookingStore = defineStore('booking', () => {
       toast.success('Hủy booking thành công!')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Không thể hủy booking')
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function deleteBooking(id) {
+    isLoading.value = true
+
+    try {
+      await bookingsApi.delete(id)
+      
+      // Xóa khỏi list
+      bookings.value = bookings.value.filter(b => b.id !== id)
+      myBookings.value = myBookings.value.filter(b => b.id !== id)
+      calendarData.value = calendarData.value.filter(b => b.id !== id)
+
+      toast.success('Đã xóa booking thành công!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể xóa booking')
       throw err
     } finally {
       isLoading.value = false
@@ -194,6 +241,7 @@ export const useBookingStore = defineStore('booking', () => {
     fetchCalendar,
     createBooking,
     cancelBooking,
+    deleteBooking,
     confirmBooking,
     setPage,
     $reset

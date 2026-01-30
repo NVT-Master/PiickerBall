@@ -2,6 +2,7 @@
 using PCM.Api.Models.Members;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace PCM.Api.Models.Challenges;
 
@@ -14,6 +15,7 @@ public class Participant
     public int ChallengeId { get; set; }
 
     [ForeignKey(nameof(ChallengeId))]
+    [JsonIgnore]
     public Challenge? Challenge { get; set; }
 
     public int MemberId { get; set; }

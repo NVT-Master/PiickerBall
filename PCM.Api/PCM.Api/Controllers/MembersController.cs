@@ -179,6 +179,32 @@ namespace PCM.Api.Controllers
         }
 
         /// <summary>
+        /// Lấy bảng xếp hạng top members (alias cho frontend)
+        /// </summary>
+        [HttpGet("top-ranking")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetTopRanking([FromQuery] int limit = 5)
+        {
+            var ranking = await _db.Members
+                .Where(m => m.IsActive)
+                .OrderByDescending(m => m.RankLevel)
+                .ThenByDescending(m => m.WinMatches)
+                .Take(limit)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.FullName,
+                    m.RankLevel,
+                    m.TotalMatches,
+                    m.WinMatches,
+                    WinRate = m.TotalMatches > 0 ? (double)m.WinMatches / m.TotalMatches * 100 : 0
+                })
+                .ToListAsync();
+
+            return Ok(ranking);
+        }
+
+        /// <summary>
         /// Tạo ví cho member
         /// </summary>
         [HttpPost("{id}/wallet")]

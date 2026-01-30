@@ -21,9 +21,17 @@ public class NewsController : ControllerBase
     /// Lấy tất cả tin tức (public)
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool? isPinned = null)
     {
-        var query = _db.News.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.CreatedAt);
+        var query = _db.News.AsQueryable();
+
+        // Filter by isPinned if specified
+        if (isPinned.HasValue)
+        {
+            query = query.Where(n => n.IsPinned == isPinned.Value);
+        }
+
+        query = query.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.CreatedAt);
 
         var total = await query.CountAsync();
         var items = await query

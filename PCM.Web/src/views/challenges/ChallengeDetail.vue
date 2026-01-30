@@ -295,6 +295,27 @@
         Quay lại danh sách
       </router-link>
     </div>
+
+    <!-- Leave Confirmation Modal -->
+    <BaseModal
+      v-if="showLeaveModal"
+      title="Xác nhận rời kèo"
+      confirm-class="btn-danger"
+      :loading="isLeavingChallenge"
+      @close="showLeaveModal = false"
+      @confirm="confirmLeave"
+    >
+      <div class="text-center py-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+        <h5 class="mt-3">Bạn có chắc muốn rời khỏi kèo này?</h5>
+        <p class="text-muted">
+          <strong>{{ challenge?.title }}</strong>
+        </p>
+        <p class="text-danger mb-0">
+          <small>Nếu đã đóng phí tham gia, bạn sẽ không được hoàn lại!</small>
+        </p>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -303,12 +324,17 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChallengeStore } from '@/stores/challenge.store'
 import { useAuthStore } from '@/stores/auth.store'
+import BaseModal from '@/components/common/BaseModal.vue'
 import dayjs from 'dayjs'
 
 const route = useRoute()
 const router = useRouter()
 const challengeStore = useChallengeStore()
 const authStore = useAuthStore()
+
+// Modal state
+const showLeaveModal = ref(false)
+const isLeavingChallenge = ref(false)
 
 // Computed
 const isLoading = computed(() => challengeStore.isLoading)
@@ -321,7 +347,25 @@ const unassigned = computed(() => participants.value.filter(p => !p.side || p.si
 
 const isJoined = computed(() => {
   const userId = authStore.user?.id
-  return participants.value.some(p => p.memberId === userId)
+  if (!userId) return false
+  
+  console.log('🔍 Checking isJoined:', {
+    userId,
+    participants: participants.value.map(p => ({
+      id: p.id,
+      memberId: p.memberId,
+      MemberId: p.MemberId,
+      member: p.member
+    }))
+  })
+  
+  return participants.value.some(p => {
+    // Handle both memberId and MemberId, and compare as strings
+    const participantMemberId = p.memberId || p.MemberId
+    const isMatch = String(participantMemberId) === String(userId)
+    console.log(`  - Participant ${p.id}: memberId=${participantMemberId}, userId=${userId}, match=${isMatch}`)
+    return isMatch
+  })
 })
 
 // Methods
@@ -368,8 +412,20 @@ async function handleJoin() {
   await challengeStore.joinChallenge(route.params.id)
 }
 
-async function handleLeave() {
-  await challengeStore.leaveChallenge(route.params.id)
+function handleLeave() {
+  showLeaveModal.value = true
+}
+
+async function confirmLeave() {
+  isLeavingChallenge.value = true
+  try {
+    await challengeStore.leaveChallenge(route.params.id)
+    showLeaveModal.value = false
+  } catch (error) {
+    // Error handled in store
+  } finally {
+    isLeavingChallenge.value = false
+  }
 }
 
 async function handleAutoDivide() {

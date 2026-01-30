@@ -24,7 +24,7 @@ public class BookingsController : ControllerBase
         if (dto.EndTime <= dto.StartTime)
             return BadRequest("EndTime phải lớn hơn StartTime");
 
-        if (dto.StartTime < DateTime.UtcNow)
+        if (dto.StartTime < DateTime.Now)
             return BadRequest("Không được đặt sân trong quá khứ");
 
         var isConflict = _db.Bookings.Any(b =>
@@ -60,6 +60,16 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet]
+    public IActionResult GetAll()
+    {
+        var bookings = _db.Bookings
+            .OrderByDescending(b => b.StartTime)
+            .ToList();
+
+        return Ok(bookings);
+    }
+
+    [HttpGet("my-bookings")]
     public IActionResult GetMyBookings()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -112,6 +122,72 @@ public class BookingsController : ControllerBase
         }
 
         return Ok(slots);
+    }
+
+    /// <summary>
+    /// Lấy lịch đặt sân theo tuần (calendar view)
+    /// </summary>
+    [HttpGet("calendar")]
+    public IActionResult GetCalendar(
+        [FromQuery] int? courtId,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var query = _db.Bookings.AsQueryable();
+
+        // Filter by court
+        if (courtId.HasValue)
+            query = query.Where(b => b.CourtId == courtId);
+
+        // Filter by date range
+        if (startDate.HasValue)
+            query = query.Where(b => b.StartTime >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(b => b.StartTime <= endDate.Value.AddDays(1));
+
+        var bookings = query
+            .Where(b => b.Status != BookingStatus.Cancelled)
+            .OrderBy(b => b.StartTime)
+            .Select(b => new
+            {
+                b.Id,
+                b.CourtId,
+                b.MemberId,
+                b.StartTime,
+                b.EndTime,
+                b.Status,
+                b.Notes,
+                Member = _db.Members
+                    .Where(m => m.Id == b.MemberId)
+                    .Select(m => new { m.Id, m.FullName })
+                    .FirstOrDefault(),
+                Court = _db.Courts
+                    .Where(c => c.Id == b.CourtId)
+                    .Select(c => new { c.Id, c.Name })
+                    .FirstOrDefault()
+            })
+            .ToList();
+
+        return Ok(bookings);
+    }
+
+    /// <summary>
+    /// Xóa booking (Admin only)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var booking = await _db.Bookings.FindAsync(id);
+        
+        if (booking == null)
+            return NotFound("Không tìm thấy booking");
+
+        _db.Bookings.Remove(booking);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Đã xóa booking thành công" });
     }
 
 }

@@ -1,11 +1,11 @@
 <template>
-  <div class="main-layout">
+  <div class="main-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <!-- Sidebar -->
-    <aside class="sidebar" :class="{ show: sidebarOpen }">
+    <aside class="sidebar" :class="{ show: !sidebarCollapsed }">
       <div class="sidebar-header">
         <router-link to="/dashboard" class="logo">
           <span class="logo-icon">🏸</span>
-          <span>PCM</span>
+          <span class="logo-text">PCM</span>
         </router-link>
       </div>
 
@@ -85,20 +85,15 @@
       </div>
     </aside>
 
-    <!-- Backdrop for mobile -->
-    <div 
-      v-if="sidebarOpen" 
-      class="sidebar-backdrop d-lg-none"
-      @click="sidebarOpen = false"
-    ></div>
-
     <!-- Main Content -->
-    <main class="main-content" :class="{ expanded: !sidebarOpen }">
+    <main class="main-content" :class="{ 'sidebar-hidden': sidebarCollapsed }">
       <!-- Navbar -->
       <nav class="navbar-main navbar navbar-expand px-3">
+        <!-- Toggle button for all screens -->
         <button 
-          class="btn btn-link text-dark d-lg-none me-2"
-          @click="sidebarOpen = !sidebarOpen"
+          class="btn btn-link text-dark me-2"
+          @click="toggleSidebar"
+          :title="sidebarCollapsed ? 'Mở menu' : 'Ẩn menu'"
         >
           <i class="bi bi-list fs-4"></i>
         </button>
@@ -212,11 +207,17 @@ import ChangePasswordModal from '@/components/common/ChangePasswordModal.vue'
 const route = useRoute()
 const authStore = useAuthStore()
 
-const sidebarOpen = ref(false)
+// Default to showing sidebar (collapsed = false means sidebar is visible)
+const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true')
 const showChangePassword = ref(false)
 const notificationCount = ref(0)
 
 const currentRoute = computed(() => route)
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value.toString())
+}
 
 function handleLogout() {
   authStore.logout()

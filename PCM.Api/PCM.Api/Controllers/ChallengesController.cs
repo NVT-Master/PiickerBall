@@ -35,6 +35,36 @@ public class ChallengesController : ControllerBase
         return Ok(challenges);
     }
 
+    /// <summary>
+    /// Lấy danh sách challenges đang mở
+    /// </summary>
+    [HttpGet("open")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetOpenChallenges([FromQuery] int limit = 10)
+    {
+        var challenges = await _db.Challenges
+            .Include(c => c.Participants)
+            .Where(c => c.Status == ChallengeStatus.Open)
+            .OrderByDescending(c => c.CreatedDate)
+            .Take(limit)
+            .ToListAsync();
+
+        return Ok(challenges);
+    }
+
+    /// <summary>
+    /// Đếm số challenges đang mở
+    /// </summary>
+    [HttpGet("open-count")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetOpenCount()
+    {
+        var count = await _db.Challenges
+            .CountAsync(c => c.Status == ChallengeStatus.Open);
+
+        return Ok(count);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -47,6 +77,26 @@ public class ChallengesController : ControllerBase
             return NotFound("Không tìm thấy kèo đấu");
 
         return Ok(challenge);
+    }
+
+    /// <summary>
+    /// Lấy danh sách người tham gia challenge
+    /// </summary>
+    [HttpGet("{id}/participants")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetParticipants(int id)
+    {
+        var challenge = await _db.Challenges.FindAsync(id);
+        if (challenge == null)
+            return NotFound("Không tìm thấy kèo đấu");
+
+        var participants = await _db.Participants
+            .Include(p => p.Member)
+            .Where(p => p.ChallengeId == id)
+            .OrderBy(p => p.JoinedAt)
+            .ToListAsync();
+
+        return Ok(participants);
     }
 
     [HttpPost]

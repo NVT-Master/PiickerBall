@@ -147,6 +147,14 @@
                       <span v-if="getBookingInfo(day.date, hour)" class="slot-info">
                         {{ getBookingInfo(day.date, hour) }}
                       </span>
+                      <button
+                        v-if="isAdmin && bookedSlots[day.date]?.[hour]"
+                        class="btn btn-sm btn-danger slot-delete-btn"
+                        @click.stop="deleteBookingSlot(day.date, hour)"
+                        title="Xóa booking này"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -208,6 +216,28 @@
         </div>
       </div>
     </BaseModal>
+
+    <!-- Delete Confirmation Modal -->
+    <BaseModal
+      v-if="showDeleteModal"
+      title="Xác nhận xóa"
+      :loading="isSubmitting"
+      @close="showDeleteModal = false"
+      @confirm="confirmDelete"
+      confirm-text="Xóa"
+      confirm-class="btn-danger"
+    >
+      <div class="text-center py-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
+        <h5 class="mt-3">Bạn có chắc muốn xóa booking này?</h5>
+        <p class="text-muted mb-0" v-if="bookingToDelete">
+          Booking của <strong>{{ bookingToDelete.memberName || 'thành viên' }}</strong>
+        </p>
+        <p class="text-danger mt-2 mb-0">
+          <small><i class="bi bi-info-circle me-1"></i>Hành động này không thể hoàn tác!</small>
+        </p>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -216,6 +246,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCourtStore } from '@/stores/court.store'
 import { useBookingStore } from '@/stores/booking.store'
+import { useAuthStore } from '@/stores/auth.store'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import dayjs from 'dayjs'
@@ -223,10 +254,15 @@ import dayjs from 'dayjs'
 const route = useRoute()
 const courtStore = useCourtStore()
 const bookingStore = useBookingStore()
+const authStore = useAuthStore()
+
+const isAdmin = computed(() => authStore.isAdmin)
 
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const showBookingModal = ref(false)
+const showDeleteModal = ref(false)
+const bookingToDelete = ref(null)
 
 const selectedCourtId = ref(null)
 const currentWeekStart = ref(dayjs().startOf('week').add(1, 'day')) // Monday
@@ -335,16 +371,24 @@ async function loadBookings() {
     // Process bookings into slot map
     bookedSlots.value = {}
     bookingStore.calendarData.forEach(booking => {
-      const date = dayjs(booking.date).format('YYYY-MM-DD')
+      // Parse date from startTime (ISO DateTime string)
+      const startDateTime = dayjs(booking.startTime)
+      const endDateTime = dayjs(booking.endTime)
+      const date = startDateTime.format('YYYY-MM-DD')
+      
       if (!bookedSlots.value[date]) {
         bookedSlots.value[date] = {}
       }
       
-      const startHour = parseInt(booking.startTime.split(':')[0])
-      const endHour = parseInt(booking.endTime.split(':')[0])
+      const startHour = startDateTime.hour()
+      const endHour = endDateTime.hour()
       
+      // Mark all hours in this booking
       for (let h = startHour; h < endHour; h++) {
-        bookedSlots.value[date][h] = booking
+        bookedSlots.value[date][h] = {
+          ...booking,
+          memberName: booking.member?.fullName || 'Đã đặt'
+        }
       }
     })
   } catch (error) {
@@ -410,7 +454,9 @@ function getBookingInfo(date, hour) {
   if (!booking) return null
   
   // Only show info on first slot of booking
-  const startHour = parseInt(booking.startTime?.split(':')[0])
+  const startDateTime = dayjs(booking.startTime)
+  const startHour = startDateTime.hour()
+  
   if (hour === startHour) {
     return booking.memberName || 'Đã đặt'
   }
@@ -425,8 +471,8 @@ function handleSlotClick(date, hour) {
   if (booking) return // Already booked
 
   bookingForm.date = date
-  bookingForm.startTime = `${hour}:00`
-  bookingForm.endTime = `${hour + 1}:00`
+  bookingForm.startTime = `${hour.toString().padStart(2, '0')}:00`
+  bookingForm.endTime = `${(hour + 1).toString().padStart(2, '0')}:00`
   bookingForm.note = ''
   
   showBookingModal.value = true
@@ -457,6 +503,31 @@ async function cancelBooking(bookingId) {
   await bookingStore.cancelBooking(bookingId)
   loadBookings()
   loadMyBookings()
+}
+
+async function deleteBookingSlot(date, hour) {
+  const booking = bookedSlots.value[date]?.[hour]
+  if (!booking) return
+  
+  bookingToDelete.value = booking
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!bookingToDelete.value) return
+  
+  isSubmitting.value = true
+  try {
+    await bookingStore.deleteBooking(bookingToDelete.value.id)
+    showDeleteModal.value = false
+    bookingToDelete.value = null
+    loadBookings()
+    loadMyBookings()
+  } catch (error) {
+    console.error('Failed to delete booking:', error)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function formatDate(date) {
@@ -497,6 +568,24 @@ function getStatusText(status) {
 
 .calendar-grid {
   min-width: 800px;
+}
+
+.slot-cell {
+  position: relative;
+}
+
+.slot-delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.slot-cell:hover .slot-delete-btn {
+  opacity: 1;
 }
 
 .calendar-header {

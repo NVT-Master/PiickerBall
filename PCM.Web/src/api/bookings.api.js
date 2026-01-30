@@ -49,6 +49,14 @@ export const bookingsApi = {
   },
 
   /**
+   * Xóa booking (Admin only)
+   * @param {number|string} id
+   */
+  delete(id) {
+    return axios.delete(`${BOOKINGS_ENDPOINT}/${id}`)
+  },
+
+  /**
    * Xác nhận booking (Admin)
    * @param {number|string} id
    */

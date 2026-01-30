@@ -19,7 +19,6 @@ public class Challenge
 
     public ChallengeType ChallengeType { get; set; }
     public MatchFormat MatchFormat { get; set; }
-    public GameMode GameMode { get; set; }
 
     public ChallengeStatus Status { get; set; } = ChallengeStatus.Open;
 

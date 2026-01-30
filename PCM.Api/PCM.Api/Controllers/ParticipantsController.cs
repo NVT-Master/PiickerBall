@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PCM.Api.Enums;
 using PCM.Api.Models;
+using PCM.Api.Models.Challenges;
 using PCM.Api.Models.Members;
 using System;
 
@@ -56,7 +58,8 @@ namespace PCM.Api.Controllers
                     {
                         MemberId = memberId,
                         Amount = -challenge.EntryFee,
-                        Type = "ENTRY_FEE",
+                        Type = TransactionType.Expense,
+                        Category = "ENTRY_FEE",
                         Description = $"Join challenge {challenge.Title}",
                         CreatedAt = DateTime.UtcNow
                     });
@@ -68,7 +71,7 @@ namespace PCM.Api.Controllers
                     ChallengeId = challengeId,
                     EntryFeePaid = challenge.EntryFee > 0,
                     EntryFeeAmount = challenge.EntryFee,
-                    JoinedDate = DateTime.UtcNow,
+                    JoinedAt = DateTime.UtcNow,
                     Status = "Joined"
                 });
 

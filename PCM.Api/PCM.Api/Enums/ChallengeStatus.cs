@@ -4,7 +4,10 @@
     {
         Open,
         Ongoing,
-        Finished
+        Full,
+        Completed,
+        Finished,
+        Cancelled
     }
 
 }

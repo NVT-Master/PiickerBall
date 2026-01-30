@@ -30,6 +30,9 @@ public class ApplicationDbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Configure table names
+        modelBuilder.Entity<WalletTransaction>().ToTable("025_WalletTransactions");
+
         modelBuilder.Entity<Member>()
             .HasOne(m => m.Wallet)
             .WithOne(w => w.Member)
@@ -41,5 +44,19 @@ public class ApplicationDbContext
             .WithMany()
             .HasForeignKey(t => t.MemberId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Participant - Member relationship (no cascade delete from member side to avoid cycles)
+        modelBuilder.Entity<Participant>()
+            .HasOne(p => p.Member)
+            .WithMany()
+            .HasForeignKey(p => p.MemberId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Participant - Challenge relationship (cascade delete from challenge side)
+        modelBuilder.Entity<Participant>()
+            .HasOne(p => p.Challenge)
+            .WithMany(c => c.Participants)
+            .HasForeignKey(p => p.ChallengeId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

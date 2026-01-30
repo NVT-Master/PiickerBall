@@ -44,16 +44,22 @@ body {
   left: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 1000;
+  transform: translateX(-100%);
   transition: transform 0.3s ease;
 
-  &.collapsed {
-    transform: translateX(-100%);
+  // Show sidebar when .show class is added
+  &.show {
+    transform: translateX(0);
   }
 
   .sidebar-header {
     padding: 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     
     .logo {
       display: flex;
@@ -66,6 +72,11 @@ body {
 
       .logo-icon {
         font-size: 2rem;
+        flex-shrink: 0;
+      }
+
+      .logo-text {
+        white-space: nowrap;
       }
     }
   }
@@ -97,6 +108,7 @@ body {
           font-size: 1.1rem;
           width: 24px;
           text-align: center;
+          flex-shrink: 0;
         }
 
         &:hover {
@@ -126,7 +138,8 @@ body {
   margin-left: var(--pcm-sidebar-width);
   transition: margin-left 0.3s ease;
 
-  &.expanded {
+  // When sidebar is hidden, content takes full width
+  &.sidebar-hidden {
     margin-left: 0;
   }
 }
@@ -359,31 +372,6 @@ body {
   .prize-pool {
     font-size: 2rem;
     font-weight: 700;
-  }
-}
-
-// Responsive
-@media (max-width: 991.98px) {
-  .sidebar {
-    transform: translateX(-100%);
-
-    &.show {
-      transform: translateX(0);
-    }
-  }
-
-  .main-content {
-    margin-left: 0;
-  }
-
-  .sidebar-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
   }
 }
 
