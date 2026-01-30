@@ -7,34 +7,42 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// =====================
+// Add services
+// =====================
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
-// Add CORS
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowVueFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://159.223.75.26",
+                  "https://159.223.75.26"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+// Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -58,7 +66,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-
+// =====================
+// Swagger (QUAN TRỌNG)
+// =====================
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -67,7 +77,6 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 
-    // 🔐 Khai báo JWT
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -75,7 +84,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Nhập: Bearer {your JWT token}"
+        Description = "Nhập: Bearer {JWT token}"
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -94,14 +103,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
 var app = builder.Build();
 
-// Ensure database is created and migrations applied
+// =====================
+// Init DB + Seed
+// =====================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated(); // Creates database if it doesn't exist
+    db.Database.EnsureCreated();
 }
 
 using (var scope = app.Services.CreateScope())
@@ -109,7 +119,6 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
     string[] roles = { "Admin", "Member" };
-
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -119,12 +128,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-
-
 using (var scope = app.Services.CreateScope())
 {
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
     var adminEmail = "bcn@pcm.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
@@ -136,12 +142,16 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(scope.ServiceProvider);
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// =====================
+// Middleware pipeline
+// =====================
+
+// 🔥 LUÔN BẬT SWAGGER (KHÔNG CHECK Development)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PCM API v1");
+});
 
 app.UseCors("AllowVueFrontend");
 
@@ -149,5 +159,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Chỉ set URL cứng khi không có ASPNETCORE_URLS từ environment
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    app.Urls.Add("http://0.0.0.0:5000");
+}
 
 app.Run();
