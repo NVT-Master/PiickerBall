@@ -254,6 +254,7 @@ import { useMemberStore } from '@/stores/member.store'
 import { useChallengeStore } from '@/stores/challenge.store'
 import { useTransactionStore } from '@/stores/transaction.store'
 import { useNewsStore } from '@/stores/news.store'
+import axios from '@/api/axios'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import dayjs from 'dayjs'
 
@@ -278,14 +279,9 @@ onMounted(async () => {
     const promises = [
       memberStore.fetchTopRanking(5),
       challengeStore.fetchOpenChallenges(),
-      challengeStore.fetchOpenCount(),
-      newsStore.fetchPinnedNews()
+      newsStore.fetchPinnedNews(),
+      axios.get('/dashboard/statistics')
     ]
-
-    // Fetch treasury summary only for Admin/Treasurer
-    if (authStore.canViewTreasury) {
-      promises.push(transactionStore.fetchSummary())
-    }
 
     const results = await Promise.allSettled(promises)
 
@@ -297,18 +293,19 @@ onMounted(async () => {
       openChallenges.value = results[1].value || []
     }
     if (results[2].status === 'fulfilled') {
-      openChallengesCount.value = results[2].value || 0
+      pinnedNews.value = results[2].value || []
     }
+    
+    // Dashboard statistics từ API mới
     if (results[3].status === 'fulfilled') {
-      pinnedNews.value = results[3].value || []
+      const stats = results[3].value?.data || results[3].value
+      totalMembers.value = stats?.totalMembers || 0
+      todayBookings.value = stats?.todayBookings || 0
+      openChallengesCount.value = stats?.openChallenges || 0
+      if (stats?.treasury) {
+        treasurySummary.value = stats.treasury
+      }
     }
-    if (authStore.canViewTreasury && results[4]?.status === 'fulfilled') {
-      treasurySummary.value = results[4].value || treasurySummary.value
-    }
-
-    // Mock data for demo
-    totalMembers.value = memberStore.totalMembers || 25
-    todayBookings.value = 8
 
   } catch (error) {
     console.error('Failed to load dashboard data:', error)

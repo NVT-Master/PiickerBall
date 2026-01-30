@@ -190,4 +190,25 @@ public class BookingsController : ControllerBase
         return Ok(new { message = "Đã xóa booking thành công" });
     }
 
+    /// <summary>
+    /// Lấy thống kê booking
+    /// </summary>
+    [HttpGet("statistics")]
+    [AllowAnonymous]
+    public IActionResult GetStatistics()
+    {
+        var today = DateTime.Today;
+        var todayBookings = _db.Bookings
+            .Count(b => b.StartTime.Date == today && b.Status != BookingStatus.Cancelled);
+
+        var totalBookings = _db.Bookings
+            .Count(b => b.Status != BookingStatus.Cancelled);
+
+        return Ok(new
+        {
+            todayBookings,
+            totalBookings
+        });
+    }
+
 }

@@ -86,6 +86,13 @@ export const bookingsApi = {
    */
   getCalendar(params) {
     return axios.get(`${BOOKINGS_ENDPOINT}/calendar`, { params })
+  },
+
+  /**
+   * Lấy thống kê booking
+   */
+  getStatistics() {
+    return axios.get(`${BOOKINGS_ENDPOINT}/statistics`)
   }
 }
 

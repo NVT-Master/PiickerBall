@@ -205,6 +205,24 @@ namespace PCM.Api.Controllers
         }
 
         /// <summary>
+        /// Lấy thống kê tổng quan members
+        /// </summary>
+        [HttpGet("statistics")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetStatistics()
+        {
+            var totalMembers = await _db.Members.CountAsync(m => m.IsActive);
+            var newMembersThisMonth = await _db.Members
+                .CountAsync(m => m.IsActive && m.CreatedDate.Month == DateTime.Now.Month && m.CreatedDate.Year == DateTime.Now.Year);
+
+            return Ok(new
+            {
+                totalMembers,
+                newMembersThisMonth
+            });
+        }
+
+        /// <summary>
         /// Tạo ví cho member
         /// </summary>
         [HttpPost("{id}/wallet")]
@@ -254,5 +272,56 @@ namespace PCM.Api.Controllers
     public class CreateWalletDto
     {
         public decimal Balance { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// Dashboard Statistics Controller - Anonymous access
+    /// </summary>
+    [ApiController]
+    [Route("api/stats")]
+    public class StatsController : ControllerBase
+    {
+        private readonly ApplicationDbContext _db;
+
+        public StatsController(ApplicationDbContext db)
+        {
+            _db = db;
+        }
+
+        /// <summary>
+        /// Lấy thống kê cho Dashboard
+        /// </summary>
+        [HttpGet("dashboard")]
+        [AllowAnonymous]
+        public IActionResult GetDashboardStats()
+        {
+            var today = DateTime.Today;
+            
+            var totalMembers = _db.Members.Count(m => m.IsActive);
+            var todayBookings = _db.Bookings
+                .Count(b => b.StartTime.Date == today && b.Status != PCM.Api.Enums.BookingStatus.Cancelled);
+            var openChallenges = _db.Challenges
+                .Count(c => c.Status == PCM.Api.Enums.ChallengeStatus.Open || c.Status == PCM.Api.Enums.ChallengeStatus.Full);
+
+            var totalIncome = _db.WalletTransactions
+                .Where(t => t.Type == PCM.Api.Enums.TransactionType.Income)
+                .Sum(t => (decimal?)t.Amount) ?? 0;
+            var totalExpense = _db.WalletTransactions
+                .Where(t => t.Type == PCM.Api.Enums.TransactionType.Expense)
+                .Sum(t => (decimal?)t.Amount) ?? 0;
+
+            return Ok(new
+            {
+                totalMembers,
+                todayBookings,
+                openChallenges,
+                treasury = new
+                {
+                    totalIncome,
+                    totalExpense,
+                    balance = totalIncome - totalExpense
+                }
+            });
+        }
     }
 }

@@ -115,10 +115,10 @@
 
         <div class="ms-auto d-flex align-items-center gap-3">
           <!-- Notifications -->
-          <div class="dropdown">
+          <div class="dropdown" ref="notificationDropdown">
             <button 
               class="btn btn-link text-dark position-relative"
-              data-bs-toggle="dropdown"
+              @click="toggleNotificationDropdown"
             >
               <i class="bi bi-bell fs-5"></i>
               <span 
@@ -128,7 +128,7 @@
                 {{ notificationCount }}
               </span>
             </button>
-            <div class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+            <div class="dropdown-menu dropdown-menu-end" :class="{ show: showNotificationDropdown }" style="width: 300px;">
               <h6 class="dropdown-header">Thông báo</h6>
               <div class="px-3 py-2 text-muted small">
                 Không có thông báo mới
@@ -137,10 +137,10 @@
           </div>
 
           <!-- User Dropdown -->
-          <div class="dropdown">
+          <div class="dropdown" ref="userDropdown">
             <button 
               class="btn btn-link text-dark d-flex align-items-center gap-2"
-              data-bs-toggle="dropdown"
+              @click="toggleUserDropdown"
             >
               <div class="avatar avatar-sm">
                 {{ authStore.userInitials }}
@@ -148,15 +148,15 @@
               <span class="d-none d-md-inline">{{ authStore.userFullName }}</span>
               <i class="bi bi-chevron-down small"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end" :class="{ show: showUserDropdown }">
               <li>
-                <router-link to="/my-profile" class="dropdown-item">
+                <router-link to="/my-profile" class="dropdown-item" @click="closeAllDropdowns">
                   <i class="bi bi-person me-2"></i>
                   Thông tin cá nhân
                 </router-link>
               </li>
               <li>
-                <a href="#" class="dropdown-item" @click.prevent="showChangePassword = true">
+                <a href="#" class="dropdown-item" @click.prevent="openChangePassword">
                   <i class="bi bi-key me-2"></i>
                   Đổi mật khẩu
                 </a>
@@ -199,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import ChangePasswordModal from '@/components/common/ChangePasswordModal.vue'
@@ -212,6 +212,12 @@ const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true'
 const showChangePassword = ref(false)
 const notificationCount = ref(0)
 
+// Dropdown states
+const showUserDropdown = ref(false)
+const showNotificationDropdown = ref(false)
+const userDropdown = ref(null)
+const notificationDropdown = ref(null)
+
 const currentRoute = computed(() => route)
 
 function toggleSidebar() {
@@ -219,7 +225,45 @@ function toggleSidebar() {
   localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value.toString())
 }
 
+function toggleUserDropdown() {
+  showUserDropdown.value = !showUserDropdown.value
+  showNotificationDropdown.value = false
+}
+
+function toggleNotificationDropdown() {
+  showNotificationDropdown.value = !showNotificationDropdown.value
+  showUserDropdown.value = false
+}
+
+function closeAllDropdowns() {
+  showUserDropdown.value = false
+  showNotificationDropdown.value = false
+}
+
+function openChangePassword() {
+  closeAllDropdowns()
+  showChangePassword.value = true
+}
+
+function handleClickOutside(event) {
+  if (userDropdown.value && !userDropdown.value.contains(event.target)) {
+    showUserDropdown.value = false
+  }
+  if (notificationDropdown.value && !notificationDropdown.value.contains(event.target)) {
+    showNotificationDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 function handleLogout() {
+  closeAllDropdowns()
   authStore.logout()
 }
 </script>

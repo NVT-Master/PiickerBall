@@ -165,6 +165,60 @@ npm run dev
 
 Frontend sẽ chạy tại: `http://localhost:5173`
 
+## 🚢 Docker (Quick deploy)
+
+1. Copy `.env.example` to `.env` and set `SA_PASSWORD` (strong password).
+
+2. Build and run with Docker Compose (at repo root):
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+3. API will be available at `http://localhost:8080` (or `http://<server-ip>:8080`).
+
+4. To stop and remove containers & volumes:
+
+```bash
+docker compose down -v
+```
+
+Notes:
+- On a DigitalOcean Droplet, open port `8080` in the Droplet firewall or use Nginx as reverse proxy and obtain SSL with Certbot.
+- Never commit `.env` to source control; keep `SA_PASSWORD` secret.
+
+## VPS / Droplet deploy (DigitalOcean)
+
+You can run the included `deploy-do.sh` on your Droplet to install Docker, clone the repo, and start the stack.
+
+1. Upload or place `deploy-do.sh` on the Droplet and make it executable:
+
+```bash
+# on droplet
+cd /root
+curl -O <raw-url-to-repo>/deploy-do.sh   # or use scp/clone
+chmod +x deploy-do.sh
+```
+
+2. Create a `.env` file with a secure `SA_PASSWORD` (or place it at `/root/.env`):
+
+```bash
+cp .env.example .env
+# edit .env and set SA_PASSWORD
+nano .env
+```
+
+3. Run the deploy script (optionally override `REPO_URL` and `APP_DIR`):
+
+```bash
+REPO_URL=https://github.com/your-username/your-repo.git APP_DIR=/opt/pcm ./deploy-do.sh
+```
+
+4. Use `docker compose ps` and `docker compose logs -f api` to verify the API.
+
+5. (Optional) Use the sample Nginx config at `deploy/nginx-pcm.conf` to create an Nginx site and obtain SSL via Certbot.
+
 ## 📊 Dữ liệu mẫu
 
 Hệ thống tự động tạo dữ liệu mẫu khi khởi động lần đầu:
